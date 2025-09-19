@@ -1,0 +1,49 @@
+apply plugin: 'org.springframework.boot'
+
+dependencies {
+	implementation project(':sqs-listener')
+	implementation 'org.reactivecommons.utils:object-mapper:0.1.0'
+	implementation project(':dynamo-db')
+	implementation project(':metrics')
+	implementation project(':reactive-web')
+    implementation project(':model')
+    implementation project(':usecase')
+    implementation 'org.springframework.boot:spring-boot-starter'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
+    testImplementation 'org.springframework.security:spring-security-test'
+    //runtimeOnly('org.springframework.boot:spring-boot-devtools')
+    testImplementation 'com.tngtech.archunit:archunit:1.4.1'
+    testImplementation 'com.fasterxml.jackson.core:jackson-databind'
+    // Swagger/OpenAPI UI
+    implementation 'org.springdoc:springdoc-openapi-starter-webflux-ui:2.6.0'
+    // Liquibase for DB migrations (JDBC-based, independent of R2DBC runtime)
+    implementation 'org.liquibase:liquibase-core'
+    // JDBC driver for Liquibase to connect to MySQL (Liquibase uses JDBC even if the app uses R2DBC)
+    runtimeOnly 'com.mysql:mysql-connector-j'
+
+    //jwt token
+    implementation("io.jsonwebtoken:jjwt-api:0.12.5")
+    runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.5")
+    runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.5")
+
+
+
+
+
+}
+
+tasks.register('explodedJar', Copy) {
+    with jar
+    into layout.buildDirectory.dir("exploded")
+}
+
+jar {
+    // To disable the *-plain.jar
+    enabled = false
+}
+
+bootJar {
+    // Sets output jar name
+    archiveFileName = "${project.getParent().getName()}.${archiveExtension.get()}"
+}

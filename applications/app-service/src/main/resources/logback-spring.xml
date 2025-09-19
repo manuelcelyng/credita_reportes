@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true" scanPeriod="60 seconds">
+
+    <!-- Lee propiedades de Spring -->
+    <springProperty name="APP_NAME"        source="spring.application.name" defaultValue="app"/>
+    <springProperty name="SPRING_LOG_FILE" source="logging.file.name"/>
+    <springProperty name="SPRING_LOG_PATH" source="logging.file.path"/>
+
+    <!-- Prioridades de ruta:
+         1) logging.file.name (ruta completa del archivo)
+         2) logging.file.path (solo directorio)  -> ${LOG_DIR}/${APP_NAME}.log
+         3) env LOG_DIR o 'logs' por defecto
+    -->
+    <property name="LOG_DIR"  value="${SPRING_LOG_PATH:-${LOG_DIR:-logs}}"/>
+    <property name="LOG_FILE" value="${SPRING_LOG_FILE:-${LOG_DIR}/${APP_NAME}.log}"/>
+
+    <!-- Rotación -->
+    <property name="MAX_FILE_SIZE"   value="${MAX_FILE_SIZE:-10MB}"/>
+    <property name="MAX_HISTORY"     value="${MAX_HISTORY:-14}"/>
+    <property name="TOTAL_SIZE_CAP"  value="${TOTAL_SIZE_CAP:-1GB}"/>
+
+    <!-- Patrón: fecha, nivel, hilo, app, cid, trace/span (si usas tracing), logger y mensaje -->
+    <property name="PATTERN"
+              value="%d{yyyy-MM-dd'T'HH:mm:ss.SSSZ} %-5level [%thread] [app:${APP_NAME}] [cid:%X{correlationId:-}] [trace:%X{traceId:-} span:%X{spanId:-}] %logger{36} - %msg%n"/>
+
+    <!-- Consola -->
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Archivo con rotación diaria + por tamaño -->
+    <appender name="FILE_ROLLING" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_FILE}</file>
+        <append>true</append>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <!-- p.ej.: /logs/miapp.2025-08-26.0.log.gz -->
+            <fileNamePattern>${LOG_DIR}/${APP_NAME}.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <maxFileSize>${MAX_FILE_SIZE}</maxFileSize>
+            <maxHistory>${MAX_HISTORY}</maxHistory>
+            <totalSizeCap>${TOTAL_SIZE_CAP}</totalSizeCap>
+            <cleanHistoryOnStart>true</cleanHistoryOnStart>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Asíncrono para no bloquear -->
+    <appender name="ASYNC_FILE" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>8192</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <appender-ref ref="FILE_ROLLING"/>
+    </appender>
+
+    <!-- Niveles por paquete -->
+    <logger name="org.springframework" level="OFF"/>
+    <logger name="org.springframework.boot" level="OFF"/>
+    <logger name="reactor.netty" level="OFF"/>
+    <logger name="io.netty" level="OFF"/>
+    <logger name="liquibase" level="OFF"/>
+    <logger name="jakarta.persistence" level="OFF"/>
+
+    <!-- Solo logs de la app -->
+    <logger name="co.com.pragma.crediya" level="INFO" additivity="false">
+        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="ASYNC_FILE"/>
+    </logger>
+
+    <!-- Root apagado -->
+    <root level="OFF"/>
+
+    <!-- Perfil dev más verboso -->
+    <springProfile name="dev">
+        <logger name="co.com.pragma.crediya" level="DEBUG"/>
+    </springProfile>
+
+</configuration>

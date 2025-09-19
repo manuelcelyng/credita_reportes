@@ -1,0 +1,67 @@
+server:
+  port: "${SERVER_PORT:8090}"
+spring:
+  profiles:
+    active: "${SPRING_PROFILES_ACTIVE:local}"
+  application:
+    name: "reportes"
+  devtools:
+    add-properties: false
+  h2:
+    console:
+      enabled: true
+      path: "/h2"
+
+app:
+  dynamo:
+    table: "${DYNAMO_REPORTES_TABLE:solicitudes_aprobadas}"
+    gsi: "metricId-updatedAt-index"
+    pk: "solicitud_id"
+  issuer: "${JWT_ISSUER:http://autenticacion:8080}"
+  audience: "autenticacion"
+
+
+
+security:
+  jwt:
+    secret: "${JWT_KEY_SECRET:fQZJCefphgnEAnD9WlLBIQbpzV351d0mb3oGGsT6bvtaSqIZbTSId6wDwV3B1CbxEO7JlxQK6obNR9oUjDlYGg==}"
+aws:
+  region: "us-east-2" # Sin endpoint :D
+
+
+
+entrypoint:
+  sqs: #LISTENER
+    region: "${AWS_SQS_REPORTES_LISTENER_REGION:us-east-2}"
+    #endpoint: "http://localhost:4566"
+    queueUrl: "${AWS_SQS_REPORTES_LISTENER_QUEUE_URL:https://sqs.us-east-2.amazonaws.com/267259336936/sqs-count-monto-apro}"
+    waitTimeSeconds: 20
+    maxNumberOfMessages: 10
+    visibilityTimeoutSeconds: 10
+    numberOfThreads: 1
+
+
+
+
+logging:
+  pattern:
+    level: "%5p [${spring.application.name}] [cid:%X{correlationId}]"
+  config: "${LOGGING_CONFIG_FILE:classpath:logback-spring.xml}"
+  file:
+    path: "${LOG_PATH:build/logs}"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,prometheus"
+  endpoint:
+    health:
+      probes:
+        enabled: true
+cors:
+  allowed-origins: "*"
+
+
+
+
